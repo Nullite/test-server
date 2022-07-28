@@ -1,43 +1,62 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import {Task} from "./task.interface"
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
 @Injectable()
 export class TaskService{
-    private tasks: Task[] = [
-        {id: 0, task: "task not found"},
-        {id: 1, task: "task 1"},
-        {id: 2, task: "task 2"}
-    ]
-    getAllTasks(): Task[]{
-        return this.tasks.slice(1, this.tasks.length)
+    constructor(@InjectModel('Task') private readonly TaskModel: Model<Task>) {}
+   
+
+    async getAllTasks(){
+        const tasks = await this.TaskModel.find().exec()
+        return tasks.map((task) => ({
+            id: task.id, task: task.task
+        }))
     }
-    getTask(id: string): string{
-        const task = this.tasks.find(t => t.id === +id)
-        return task ? task.task : this.tasks[0].task
-    }
-    createTask(task : string): Task{
-        const id = this.tasks[this.tasks.length - 1].id + 1
-        const newTask = {id: id, task: task + " " + id}
-        this.tasks.push(newTask)
-        return newTask
-    }
-    deleteTask(id : string): string{
-        const ID : number = +id
-        if(ID && this.tasks[ID]){
-            this.tasks.splice(ID, 1)
-            for (let i = ID; i < this.tasks.length; ++i){
-                this.tasks[i].id--
-            }
-            return "deleted"
-        } 
-        else return this.tasks[0].task
-    }
-    modifyTask(id: string, task : string) : any{
-        const ID : number = +id
-        if (ID && this.tasks[ID]){
-            this.tasks[ID].task = task + " " + ID
-            return this.tasks[ID]
+    async getTask(id: string): Promise<Task>{
+        let task
+        try{
+            task = await this.TaskModel.findById(id)
+        } catch(error){
+            throw new NotFoundException ("task is not found")
         }
-        else return this.tasks[0].task   
+        if (!task) throw new NotFoundException ("task is not found")
+        return {
+            id: task.id, 
+            task: task.task
+        }
     }
+    async createTask(task : string): Promise<Task> {
+        const newTask = new this.TaskModel({task: task})
+        const result = await newTask.save()
+        return {
+            id: result.id,
+            task: result.task
+        }
+    }
+    async deleteTask(id: string) {
+      let taskToDelete
+      try{
+        taskToDelete = await this.TaskModel.deleteOne({id: id})
+    } catch(error){
+        throw new NotFoundException ("task is not found")
+    }
+        return `task ${id} deleted`
+    } 
+       
+    async modifyTask(id, task): Promise<Task>{
+        let modifyTask
+        try{
+            modifyTask = await this.TaskModel.findById(id)
+        } catch(error){
+            throw new NotFoundException ("task is not found")
+        }
+        modifyTask.task = task
+        const result = await modifyTask.save()
+        return {
+            id: modifyTask.id,
+            task: modifyTask.task
+        }
+    }      
 }

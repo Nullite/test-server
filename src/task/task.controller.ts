@@ -1,28 +1,32 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
 import { TaskService} from "./task.service";
-import { Task } from "./task.interface";
 
 @Controller('tasks')
 export class TaskController{
     constructor (private testService : TaskService){}
     @Get()
-    getAllTasks(): Task[]{
-        return this.testService.getAllTasks()
+    async getAllTasks(){
+        const tasks = await this.testService.getAllTasks()
+        return tasks
+          
     }
     @Get(':id')
-    getTask(@Param('id') id: string): string{
-        return this.testService.getTask(id)
+    async getTask(@Param('id') id: string){
+        const task = await this.testService.getTask(id)
+        return task
     }
     @Post()
-    createTask(@Body('task') task : string): Task{
-        return this.testService.createTask(task)
+    async createTask(@Body('task') task : string){
+        const id =  await this.testService.createTask(task)
+        return id
     }
-    @Delete()
-    deleteTask(@Body('id') id: string){
+    @Delete(':id')
+    async deleteTask(@Param('id') id: string){
         return this.testService.deleteTask(id)
     }
-    @Patch()
-    modifyTask(@Body('id') id: string, @Body('task') task : string){
-        return this.testService.modifyTask(id, task)
+    @Patch(':id')
+    async modifyTask(@Param('id') id: string, @Body('task') task: string){
+        const result = await this.testService.modifyTask(id, task)
+        return result
     }
 }
