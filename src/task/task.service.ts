@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable} from "@nestjs/common";
 import {Task} from "./task.interface"
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
+import { CreateTaskDto } from "./create-task.dto";
 
 @Injectable()
 export class TaskService{
@@ -19,16 +20,16 @@ export class TaskService{
         try{
             task = await this.TaskModel.findById(id)
         } catch(error){
-            throw new NotFoundException ("task is not found")
+            return null
         }
-        if (!task) throw new NotFoundException ("task is not found")
+        if (!task) return null
         return {
             id: task.id, 
             task: task.task
         }
     }
-    async createTask(task : string): Promise<Task> {
-        const newTask = new this.TaskModel({task: task})
+    async createTask(task : CreateTaskDto): Promise<Task> {
+        const newTask = new this.TaskModel({task: task.task})
         const result = await newTask.save()
         return {
             id: result.id,
@@ -37,11 +38,8 @@ export class TaskService{
     }
     async deleteTask(id: string) {
       let taskToDelete
-      try{
-        taskToDelete = await this.TaskModel.deleteOne({id: id})
-    } catch(error){
-        throw new NotFoundException ("task is not found")
-    }
+        taskToDelete = await this.TaskModel.findByIdAndDelete(id)
+        if (taskToDelete.deletedCount === 0) return null
         return `task ${id} deleted`
     } 
        
@@ -49,11 +47,12 @@ export class TaskService{
         let modifyTask
         try{
             modifyTask = await this.TaskModel.findById(id)
+            console.log(modifyTask)
         } catch(error){
-            throw new NotFoundException ("task is not found")
+            return null
         }
         modifyTask.task = task
-        const result = await modifyTask.save()
+        await modifyTask.save()
         return {
             id: modifyTask.id,
             task: modifyTask.task

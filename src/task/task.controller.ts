@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, UsePipes, ValidationPipe } from "@nestjs/common";
+import { CreateTaskDto } from "./create-task.dto";
 import { TaskService} from "./task.service";
 
 @Controller('tasks')
@@ -13,20 +14,25 @@ export class TaskController{
     @Get(':id')
     async getTask(@Param('id') id: string){
         const task = await this.testService.getTask(id)
+        if (!task) throw new NotFoundException
         return task
     }
+    @UsePipes(new ValidationPipe)
     @Post()
-    async createTask(@Body('task') task : string){
+    async createTask(@Body() task : CreateTaskDto){
         const id =  await this.testService.createTask(task)
         return id
     }
     @Delete(':id')
     async deleteTask(@Param('id') id: string){
-        return this.testService.deleteTask(id)
+       const del =  await this.testService.deleteTask(id)
+       if (!del) throw new NotFoundException
+       return del
     }
     @Patch(':id')
     async modifyTask(@Param('id') id: string, @Body('task') task: string){
         const result = await this.testService.modifyTask(id, task)
+        if (!result) throw new NotFoundException
         return result
     }
 }
